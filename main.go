@@ -1,75 +1,56 @@
-///ПРИМЕР РАБОТЫ
-/*
-package main
-
-import (
-	"fmt"
-	"net/http"
-
-
-
-
-
-
-
-
-
-
-
-
-	"github.com/gorilla/mux"
-)
-
-func HelloHandler(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintln(w, "Hello, World!")
-}
-
-func main() {
-    router := mux.NewRouter()
-    // наше приложение будет слушать запросы на localhost:8080/api/hello
-    router.HandleFunc("/api/hello", HelloHandler).Methods("GET")
-    http.ListenAndServe(":8080", router)
-}
-*/
+// /Задание 2
 package main
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
-var message string                                                                                          //хранит сообщение от клиента
-                                                                                                            
-type requestBody struct {                                                                                   // определяем структуру requestBody, которая содержит одно поле Message
-    Message string `json:"message"`                                                                         // добавляем тег для сериализации. В JSON Message будет message
+// Структура для запроса
+type requestBody struct {
+    Message string `json:"message"` 
 }
-                                                                                                            // Обработчики запросов Сперва POST
-func postHandler(w http.ResponseWriter, r *http.Request) {                                                  // w - позволяет формировать ответ клиенту, r сслыка на структура запроса
-    var reqBody requestBody                                                                                 // переменная для хранения данных, полученных от клиента
-    decoder := json.NewDecoder(r.Body)                                                                      // декодер для десериализации. Из JSON в структуры. Body это поле структуры Request
-    err := decoder.Decode(&reqBody)                                                                         // декодирование. Метод Decode принимает данные, которые необходимо преобразовать
-    if err != nil {                                                                                         // обработка ошибки: встроенная функция позволяет выводить ошибку в правильном формате
-        http.Error(w, err.Error(), http.StatusBadRequest)                                                   // 3 аргумента - формировщик ответа / тип ошибки / код состояния HTTP
-        return                                                                                              // возвращение значения
+
+// Обработчик POST запросов для создания сообщения
+func postHandler(w http.ResponseWriter, r *http.Request) {
+    var reqBody requestBody
+    decoder := json.NewDecoder(r.Body)
+    err := decoder.Decode(&reqBody)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
     }
-    message = reqBody.Message                                                                               // запись в переменную через поле структуры
-    fmt.Fprintf(w, "Message received: %s", message)                                                         // ответ (куда/ что / и ещё переменная, которую передаём )
+
+    message := Message{Text: reqBody.Message} //инициализация переменной полем структуры
+    if err := DB.Create(&message).Error; err != nil { //через DB подключаемся к БД и создаём методом Create запись в БД
+        http.Error(w, err.Error(), http.StatusInternalServerError) //обработка ошибок
+        return
+    }
+    fmt.Fprintf(w, "Message received: %s", message.Text)
 }
 
-func getHandler(w http.ResponseWriter, r *http.Request) {                                                   // обработчик GET-запросов.
-    fmt.Fprintf(w, "Hello, %s!", message)                                                                   // выводит приветствие и сообщение с глобальной переменнной
+// Обработчик GET запросов для получения всех сообщений
+func getHandler(w http.ResponseWriter, r *http.Request) {
+    var messages []Message //слайс для массивов ответов
+    if err := DB.Find(&messages).Error; err != nil { //Находим все записи в таблице и записываем в слайс
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+//установка заголовка
+    w.Header().Set("Content-Type", "application/json") //SET - устанавливает значение заголовка. Content-Type-заголовок тип содержимого. Аpplication/json - значение заголовка (говорит, что тип будет JSON)
+    json.NewEncoder(w).Encode(messages) //кодирование слайса messages в JSON и отправка как ответ
 }
 
+// Основная функция
 func main() {
-    router := mux.NewRouter()                                                                               // создание маршрутизатора
+    InitDB() //установка соединения с БД
+    DB.AutoMigrate(&Message{}) //изменение БД в соответствии моделью (структурой Message)
 
-    // Регистрация маршрутов                                                                                (путь/функция-обработчик/метод ограничитель - это здесь)
-
-    router.HandleFunc("/post", postHandler).Methods("POST")                                                 // если запрос на /post, то вызывается функция postHandler. Methods("POST") только для обработки POST запросов
-    router.HandleFunc("/get", getHandler).Methods("GET")                                                    // регистрация GET запроса и проверка на метод GET, чтобы другие не обрабатывать
-
-    fmt.Println("Server is listening on port 8080...")
-    http.ListenAndServe(":8080", router)                                                                    // запуск HTTP-сервера, позволяя обрабатывать запросы и связывать их с обработчиками
+    router := mux.NewRouter()
+    router.HandleFunc("/api/messages", postHandler).Methods("POST")
+    router.HandleFunc("/api/messages", getHandler).Methods("GET")
+    http.ListenAndServe(":8080", router)
 }

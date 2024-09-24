@@ -1,0 +1,47 @@
+openapi: 3.0.0
+info:
+  title: API
+  version: 1.0.0
+paths:
+  /messages:
+    get:
+      summary: Get all messages
+      tags:
+        - messages
+      responses:
+        "200":
+          description: A list of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      summary: Create a new message
+      tags:
+        - messages
+      requestBody:
+        description: The message to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Message"
+      responses:
+        "201":
+          description: The created message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+components:
+  schemas:
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint # так как в БД айди это только положительные числа.
+        message:
+          type: string

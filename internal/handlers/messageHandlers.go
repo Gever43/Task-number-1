@@ -7,6 +7,7 @@ import (
 	"myProject/internal/web/messages"
 )
 
+//создание структуры для "спуска" логики на уровень сервиса
 type Handler struct {
     Service *messagesService.MessageService
 }
@@ -30,7 +31,7 @@ func (h *Handler) GetMessages(_ context.Context, _ messages.GetMessagesRequestOb
 
     // Заполняем слайс response всеми сообщениями из БД
     for _, msg := range allMessages {
-        message := messages.Message{
+        message := messages.Message {
             Id:      &msg.ID,
             Message: &msg.Text,
         }
@@ -42,10 +43,16 @@ func (h *Handler) GetMessages(_ context.Context, _ messages.GetMessagesRequestOb
 }
 
 func (h *Handler) PostMessages(_ context.Context, request messages.PostMessagesRequestObject) (messages.PostMessagesResponseObject, error) {
+    // Проверяем, что Body не nil
+    if request.Body == nil {
+        return nil, errors.New("body cannot be nil")
+    }
+
     // Распаковываем тело запроса напрямую, без декодера!
     messageRequest := request.Body
     // Создаем сообщение
-    messageToCreate := messagesService.Message{Text: *messageRequest.Message}
+    messageToCreate := messagesService.DBMessage {Text: *messageRequest.Message}
+    // Передаём на другой уровень
     createdMessage, err := h.Service.CreateMessage(messageToCreate)
 
     if err != nil {
@@ -69,7 +76,7 @@ func (h *Handler) PatchMessage(_ context.Context, request messages.PatchMessages
     }
 
     // Обновляем сообщение, используя метод из MessageService
-    updatedMessage, err := h.Service.UpdateMessageByID(int(*request.Body.Id), messagesService.Message{Text: *request.Body.Message}) 
+    updatedMessage, err := h.Service.UpdateMessageByID(int(*request.Body.Id), messagesService.DBMessage {Text: *request.Body.Message}) 
     if err != nil {
         return nil, err
     }

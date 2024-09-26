@@ -10,17 +10,17 @@ func NewService(repo MessageRepository) *MessageService {
 }
 
 // CreateMessage - создает новое сообщение
-func (s *MessageService) CreateMessage(message Message) (Message, error) {
+func (s *MessageService) CreateMessage(message DBMessage) (DBMessage, error) {
 	return s.repo.CreateMessage(message)
 }
 
 // GetAllMessages - возвращает все сообщения
-func (s *MessageService) GetAllMessages() ([]Message, error) {
+func (s *MessageService) GetAllMessages() ([]DBMessage, error) {
 	return s.repo.GetAllMessages()
 }
 
 // UpdateMessageByID - обновляет сообщение по ID
-func (s *MessageService) UpdateMessageByID(id int, message Message) (Message, error) {
+func (s *MessageService) UpdateMessageByID(id int, message DBMessage) (DBMessage, error) {
 	return s.repo.UpdateMessageByID(id, message)
 }
 

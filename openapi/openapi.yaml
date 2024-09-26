@@ -3,9 +3,9 @@ info:
   title: API
   version: 1.0.0
 paths:
-  /messages:
-    get:
-      summary: Get all messages
+  /messages: //пути
+    get: //поддерживаемый метод
+      summary: Get all messages (описание операции)
       tags:
         - messages
       responses:
@@ -16,8 +16,8 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Message"
-    post:
+                  $ref: "#/components/schemas/Message" # Исправлено
+    post: //поддерживаемый метод
       summary: Create a new message
       tags:
         - messages
@@ -27,14 +27,46 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Message"
+              $ref: "#/components/schemas/Message" # Исправлено
       responses:
         "201":
           description: The created message
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Message"
+                $ref: "#/components/schemas/Message" # Исправлено
+    patch:
+      summary: Update an existing message
+      tags:
+        - messages
+      requestBody:
+        description: The update message data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Message" # Исправлено
+      responses:
+        "200":
+          description: The updated message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message" # Исправлено
+    delete:
+      summary: Delete a message
+      tags:
+        - messages
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: uint
+      responses:
+        "204":
+          description: Message successfully deleted
 components:
   schemas:
     Message:

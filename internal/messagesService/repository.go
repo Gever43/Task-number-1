@@ -8,13 +8,13 @@ import (
 type MessageRepository interface {
 
     // CreateMessage - Создает новое сообщение и возвращает его
-    CreateMessage(message Message) (Message, error)
+    CreateMessage(message DBMessage ) (DBMessage , error)
 
     // GetAllMessages - Возвращает все сообщения из БД
-    GetAllMessages() ([]Message, error)
+    GetAllMessages() ([]DBMessage , error)
 
     // UpdateMessageByID - Обновляет сообщение по ID и возвращает его
-    UpdateMessageByID(id int, message Message) ( Message, error)
+    UpdateMessageByID(id int, message DBMessage ) ( DBMessage , error)
 	
     // DeleteMessageByID - Удаляет сообщение по ID
     DeleteMessageByID(id int) error
@@ -31,32 +31,32 @@ func NewMessageRepository(db *gorm.DB) *messageRepository {
 }
 
 // CreateMessage - реализация метода для создания сообщения
-func (r *messageRepository) CreateMessage(message Message) (Message, error) {
+func (r *messageRepository) CreateMessage(message DBMessage ) (DBMessage , error) {
     result := r.db.Create(&message)
     if result.Error != nil {
-        return Message{}, result.Error
+        return DBMessage {}, result.Error
     }
     return message, nil
 }
 
 // GetAllMessages - реализация метода для получения всех сообщений
-func (r *messageRepository) GetAllMessages() ([]Message, error) {
-    var messages []Message
+func (r *messageRepository) GetAllMessages() ([]DBMessage , error) {
+    var messages []DBMessage 
     err := r.db.Find(&messages).Error
     return messages, err
 }
 
 // UpdateMessageByID - реализация метода для обновления сообщения по ID
-func (r *messageRepository) UpdateMessageByID(id int, message Message) (Message, error) {
-    var existingMessage Message
+func (r *messageRepository) UpdateMessageByID(id int, message DBMessage ) (DBMessage , error) {
+    var existingMessage DBMessage 
     if err := r.db.First(&existingMessage, id).Error; err != nil {
-        return Message{}, err
+        return DBMessage {}, err
     }
 
     // Обновляем поля существующего сообщения
     existingMessage.Text = message.Text
     if err := r.db.Save(&existingMessage).Error; err != nil {
-        return Message{}, err
+        return DBMessage {}, err
     }
 
     return existingMessage, nil
@@ -64,7 +64,7 @@ func (r *messageRepository) UpdateMessageByID(id int, message Message) (Message,
 
 // DeleteMessageByID - реализация метода для удаления сообщения по ID
 func (r *messageRepository) DeleteMessageByID(id int) error {
-    if err := r.db.Delete(&Message{}, id).Error; err != nil {
+    if err := r.db.Delete(&DBMessage {}, id).Error; err != nil {
         return err
     }
     return nil

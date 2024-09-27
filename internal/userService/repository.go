@@ -2,6 +2,7 @@ package userService
 
 import (
 	"errors"
+	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -50,21 +51,41 @@ func (repo *UserRepository) GetAllUsers() ([]DBUser, error) {
     return users, nil
 }
 
-// UpdateUser обновляет информацию о пользователе по ID
+// UpdateUser - реализация метода для обновления информации о пользователе по ID
 func (repo *UserRepository) UpdateUser(id uint, user DBUser) (DBUser, error) {
     var existingUser DBUser
+
+    // Проверяем, существует ли пользователь с заданным ID
     if err := repo.DB.First(&existingUser, id).Error; err != nil {
-        return DBUser{}, err
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return DBUser{}, fmt.Errorf("user with id %d not found", id)
+        }
+        return DBUser{}, err // Возвращаем ошибку, если произошла другая ошибка
     }
+
+    // Обновляем поля существующего пользователя
     existingUser.Email = user.Email
     existingUser.Password = user.Password
+
+    // Сохраняем изменения в базе данных
     if err := repo.DB.Save(&existingUser).Error; err != nil {
-        return DBUser{}, err
+        return DBUser{}, err // Возвращаем ошибку, если сохранение не удалось
     }
-    return existingUser, nil
+
+    return existingUser, nil // Возвращаем обновленного пользователя
 }
 
 // DeleteUser удаляет пользователя по ID
 func (repo *UserRepository) DeleteUser(id uint) error {
-    return repo.DB.Delete(&DBUser{}, id).Error
+    var user DBUser
+    // Проверяем, существует ли пользователь
+    if err := repo.DB.First(&user, id).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return fmt.Errorf("user with id %d not found", id) // Пользователь не найден
+        }
+        return err // Возвращаем другую ошибку
+    }
+
+    // Удаляем пользователя
+    return repo.DB.Delete(&user).Error
 }

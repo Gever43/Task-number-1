@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -56,9 +58,9 @@ func main() {
             return c.String(http.StatusBadRequest, err.Error())
         }
 
-        // Проверяем, что Body не nil
-        if request.Body == nil || request.Body.Message == nil {
-            return c.String(http.StatusBadRequest, "body or message cannot be nil")
+        // Проверяем, что Body не nil и Message не пустая строка
+        if request.Body == nil || request.Body.Message == "" {
+            return c.String(http.StatusBadRequest, "body or message cannot be nil or empty")
         }
 
         // Создание сообщения
@@ -87,7 +89,7 @@ func main() {
     // PATCH запрос для обновления сообщения
     e.PATCH("/api/messages/:id", func(c echo.Context) error {
         messageID := c.Param("id") // Получаем ID сообщения из URL
-        var request messages.PatchMessagesRequestObject
+        var request messages.PatchMessagesIdRequestObject
 
         // Десериализация данных из тела запроса
         if err := c.Bind(&request); err != nil {
@@ -115,51 +117,54 @@ func main() {
 
     e.DELETE("/api/messages/:id", func(c echo.Context) error {
         messageID := c.Param("id") // Получаем ID сообщения из URL
-
+    
         // Преобразуем messageID из строки в uint
         id, err := strconv.ParseUint(messageID, 10, 32)
         if err != nil {
             return c.String(http.StatusBadRequest, "invalid message ID")
         }
-
-        // Создаем объект запроса
-        request := messages.DeleteMessagesRequestObject{
-            Id: uint(id), // Присваиваем значение ID
+    
+        // Создаем объект запроса, преобразуем id в int
+        request := messages.DeleteMessagesIdRequestObject{
+            Id: int(id), // Присваиваем значение ID как int
         }
-
-        // Вызов функции для удаления сообщения
-        _ , err = messagesHandler.DeleteMessages(c.Request().Context(), request)
+    
+        // Вызываем метод DeleteMessages для удаления сообщения
+        _, err = messagesHandler.DeleteMessages(c.Request().Context(), request)
         if err != nil {
+            // Проверка, если сообщение не найдено
+            if strings.Contains(err.Error(), fmt.Sprintf("message with id %d not found", id)) {
+                return c.String(http.StatusNotFound, err.Error())
+            }
             return c.String(http.StatusInternalServerError, err.Error())
         }
-
-        return c.String(http.StatusOK, "Запись успешно удалена!")
+    
+        // Возвращаем успешный ответ
+        return c.String(http.StatusOK, "Сообщение успешно удалено!")
     })
 
-    // Обработчики для пользователей
-    e.POST("/api/users", func(c echo.Context) error {
-        var userRequest users.CreateUserRequest
-        if err := c.Bind(&userRequest); err != nil {
-            return c.String(http.StatusBadRequest, err.Error())
-        }
-    
-        // Проверяем, что тело запроса не нулевое
-        if userRequest.Body == nil || userRequest.Body.Name == "" || userRequest.Body.Email == "" || userRequest.Body.Password == "" {
-            return c.String(http.StatusBadRequest, "body, name, email, or password cannot be nil or empty")
-        }
-    
-        // Создаем объект PostUsersRequestObject
-        postUsersRequest := users.PostUsersRequestObject{
-            Body: userRequest.Body, // Передаем тело из userRequest
-        }
-    
-        // Вызываем метод PostUsers с правильным типом аргумента
-        newUserResponse, err := userHandler.PostUsers(c.Request().Context(), postUsersRequest)
-        if err != nil {
-            return c.String(http.StatusInternalServerError, err.Error())
-        }
-        return c.JSON(http.StatusCreated, newUserResponse)
-    })
+    // Обработчик для создания пользователя
+e.POST("/api/users", func(c echo.Context) error {
+    var request users.PostUsersRequestObject // Изменяем на PostUsersRequestObject
+
+    // Десериализация данных из тела запроса к структуре request
+    if err := c.Bind(&request); err != nil {
+        return c.String(http.StatusBadRequest, err.Error())
+    }
+
+    // Проверяем, что Body не nil, и поля Name, Email, Password не пустые
+    if request.Body == nil || request.Body.Name == "" || request.Body.Email == "" || request.Body.Password == "" {
+        return c.String(http.StatusBadRequest, "body, name, email, or password cannot be nil or empty")
+    }
+    // Создание пользователя
+    newUserResponse, err := userHandler.PostUsers(c.Request().Context(), request)
+    if err != nil {
+        return c.String(http.StatusInternalServerError, err.Error())
+    }
+
+    // Если всё успешно, возвращаем JSON клиенту
+    return c.JSON(http.StatusCreated, newUserResponse)
+})
 
     e.GET("/api/users", func(c echo.Context) error {
         var request users.GetUsersRequestObject
@@ -174,12 +179,13 @@ func main() {
         return response.VisitGetUsersResponse(c.Response())
     })
     // PATCH запрос для обновления пользователя
+
 // PATCH запрос для обновления пользователя
 e.PATCH("/api/users/:id", func(c echo.Context) error {
     userID := c.Param("id") // Получаем ID пользователя из URL
-    var request users.PatchUsersRequestObject // Создаем объект запроса
+    var request users.PatchUsersIdRequestObject // Создаем объект запроса
 
-    // Привязываем тело запроса
+    // Десериализация данных из тела запроса
     if err := c.Bind(&request); err != nil {
         return c.String(http.StatusBadRequest, err.Error())
     }
@@ -190,10 +196,11 @@ e.PATCH("/api/users/:id", func(c echo.Context) error {
         return c.String(http.StatusBadRequest, "invalid user ID")
     }
 
-     // Устанавливаем ID в Body запроса
-     request.Body.ID = uint(id) // Присваиваем значение напрямую
+    // Устанавливаем ID в Body запроса
+    request.Body.Id = new(uint) // Создаем указатель на uint
+    *request.Body.Id = uint(id)  // Присваиваем значение
 
-    // Вызываем метод PatchUser для обновления пользователя
+    // Вызываем метод PatchUsers для обновления пользователя
     updatedUserResponse, err := userHandler.PatchUsers(c.Request().Context(), request)
     if err != nil {
         return c.String(http.StatusInternalServerError, err.Error())
@@ -214,15 +221,21 @@ e.DELETE("/api/users/:id", func(c echo.Context) error {
     }
 
     // Создаем объект запроса
-    request := users.DeleteUsersRequestObject{
-        Id: uint(id), // Присваиваем значение ID
+    request := users.DeleteUsersIdRequestObject{
+        Id: int(id), // Присваиваем значение ID как int
     }
 
     // Вызываем метод DeleteUser для удаления пользователя
-    if _ , err := userHandler.DeleteUsers(c.Request().Context(), request); err != nil {
+    _, err = userHandler.DeleteUsers(c.Request().Context(), request)
+    if err != nil {
+        // Проверка, если пользователь не найден
+        if strings.Contains(err.Error(), fmt.Sprintf("user with id %d not found", id)) {
+            return c.String(http.StatusNotFound, err.Error())
+        }
         return c.String(http.StatusInternalServerError, err.Error())
     }
 
+    // Возвращаем успешный ответ
     return c.String(http.StatusOK, "Запись успешно удалена!")
 })
 

@@ -1,6 +1,9 @@
 package messagesService
 
 import (
+	"errors"
+	"fmt"
+
 	"gorm.io/gorm"
 )
 
@@ -64,8 +67,15 @@ func (r *messageRepository) UpdateMessageByID(id int, message DBMessage ) (DBMes
 
 // DeleteMessageByID - реализация метода для удаления сообщения по ID
 func (r *messageRepository) DeleteMessageByID(id int) error {
-    if err := r.db.Delete(&DBMessage {}, id).Error; err != nil {
-        return err
+    var message DBMessage
+    // Проверяем, существует ли сообщение
+    if err := r.db.First(&message, id).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return fmt.Errorf("message with id %d not found", id) // Сообщение не найдено
+        }
+        return err // Возвращаем другую ошибку
     }
-    return nil
+
+    // Удаляем сообщение
+    return r.db.Delete(&message).Error
 }

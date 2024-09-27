@@ -25,7 +25,7 @@ run:
 	go run cmd/app/main.go
 
 gen_messages:
-	oapi-codegen -config openapi/messages/.openapi -include-tags messages -package messages openapi/messages/openapi.yaml > ./internal/web/messages/api.gen.go
+	oapi-codegen -config openapi/messages/.openapi -include-tags messages -package messages openapi/messages/openapi.yaml > ./internal/web/messages/message.go
 
 lint:
 	golangci-lint run --out-format=colored-line-number

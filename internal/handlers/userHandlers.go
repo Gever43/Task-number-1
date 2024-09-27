@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"myProject/internal/userService"
 	"myProject/internal/web/users"
+
+	"gorm.io/gorm"
 )
 
 // UserHandler для работы с пользователями
@@ -32,7 +35,7 @@ func (h *UserHandler) GetUsers(ctx context.Context, request users.GetUsersReques
     // Заполняем ответ
     for _, user := range allUsers {
         userResponse := users.User{
-            ID:       user.ID,
+            Id:       &user.ID,
             Name:     user.Name,
             Email:    user.Email,
             Password: user.Password, 
@@ -61,7 +64,7 @@ func (h *UserHandler) PostUsers(ctx context.Context, request users.PostUsersRequ
     }
 
     response := users.PostUsers201JSONResponse{
-        ID:       createdUser.ID,
+        Id:       &createdUser.ID,
         Name:     createdUser.Name,
         Email:    createdUser.Email,
     }
@@ -70,13 +73,17 @@ func (h *UserHandler) PostUsers(ctx context.Context, request users.PostUsersRequ
 }
 
 // Обработчик обновления пользователя
-func (h *UserHandler) PatchUsers(ctx context.Context, request users.PatchUsersRequestObject) (users.PatchUsersResponseObject, error) {
-    if request.Body == nil {
-        return nil, errors.New("body cannot be nil")
+func (h *UserHandler) PatchUsers(ctx context.Context, request users.PatchUsersIdRequestObject) (users.PatchUsersId200JSONResponse, error) {
+    log.Printf("Received request to update user with ID: %d", request.Body.Id)
+    log.Printf("Request body: %+v", request.Body)
+
+    // Проверяем, что Body не nil и Name не пустое
+    if request.Body == nil || request.Body.Name == "" {
+        return users.PatchUsersId200JSONResponse{}, errors.New("body or name cannot be empty")
     }
 
     // Преобразование int в uint
-    id := uint(request.Id) 
+    id := uint(*request.Body.Id)
 
     // Создание объекта пользователя для обновления
     userToUpdate := userService.DBUser{
@@ -88,27 +95,33 @@ func (h *UserHandler) PatchUsers(ctx context.Context, request users.PatchUsersRe
     // Обновление пользователя
     updatedUser, err := h.Service.UpdateUserByID(id, userToUpdate)
     if err != nil {
-        return nil, fmt.Errorf("failed to update user: %w", err) // Более информативное сообщение об ошибке
+        log.Printf("Error updating user: %v", err)
+        return users.PatchUsersId200JSONResponse{}, fmt.Errorf("failed to update user: %w", err)
     }
 
-    response := users.PatchUsers200JSONResponse{
-        ID:       updatedUser.ID,
-        Name:     updatedUser.Name,
-        Email:    updatedUser.Email,
+    // Создаем структуру респонс
+    response := users.PatchUsersId200JSONResponse{
+        Id:      &updatedUser.ID, 
+        Name:    updatedUser.Name,
+        Email:   updatedUser.Email,
     }
 
     return response, nil
 }
 
 // Обработчик удаления пользователя
-func (h *UserHandler) DeleteUsers(ctx context.Context, request users.DeleteUsersRequestObject) (users.DeleteUsersResponseObject, error) {
+func (h *UserHandler) DeleteUsers(ctx context.Context, request users.DeleteUsersIdRequestObject) (users.DeleteUsersIdResponseObject, error) {
     id := uint(request.Id) // Преобразование int в uint
 
     // Удаление пользователя
     err := h.Service.DeleteUserByID(id)
     if err != nil {
+        // Проверяем, если ошибка связана с отсутствием пользователя
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return nil, fmt.Errorf("user with id %d not found", id) // Сообщение об ошибке
+        }
         return nil, fmt.Errorf("failed to delete user: %w", err) // Более информативное сообщение об ошибке
     }
 
-    return users.DeleteUsers204Response{}, nil
+    return users.DeleteUsersId204Response{}, nil
 }

@@ -1,7 +1,9 @@
 openapi: 3.0.0
 info:
-  title: API
+  title: Messages API
   version: 1.0.0
+  description: API для управления сообщениями
+
 paths:
   /messages:
     get:
@@ -35,12 +37,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Message"
+
+  /messages/{id}:
     patch:
       summary: Update an existing message
       tags:
         - messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
       requestBody:
-        description: The update message data
+        description: The updated message data
         required: true
         content:
           application/json:
@@ -59,14 +70,15 @@ paths:
         - messages
       parameters:
         - name: id
-          in: query
+          in: path
           required: true
           schema:
             type: integer
-            format: uint
+            example: 1
       responses:
         "204":
           description: Message successfully deleted
+
 components:
   schemas:
     Message:
@@ -77,3 +89,5 @@ components:
           format: uint
         message:
           type: string
+      required:
+        - message

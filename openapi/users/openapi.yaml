@@ -2,6 +2,8 @@ openapi: 3.0.0
 info:
   title: User API
   version: 1.0.0
+  description: API для управления пользователями
+
 paths:
   /users:
     get:
@@ -30,11 +32,12 @@ paths:
               $ref: "#/components/schemas/User"
       responses:
         "201":
-          description: User created successfully
+          description: The created user
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+
   /users/{id}:
     parameters:
       - name: id
@@ -42,21 +45,44 @@ paths:
         required: true
         schema:
           type: integer
-          format: uint
+          example: 1
     patch:
-      summary: Update user by ID
+      summary: Update an existing user
       tags:
         - users
+      requestBody:
+        description: The updated user data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
       responses:
         "200":
-          description: User updated successfully
+          description: The updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
     delete:
-      summary: Delete user by ID
+      summary: Delete a user
       tags:
         - users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
       responses:
         "204":
-          description: User deleted successfully
+          description: User successfully deleted
+        "404":
+          description: User not found
+
 components:
   schemas:
     User:
@@ -69,3 +95,9 @@ components:
           type: string
         email:
           type: string
+        password:
+          type: string
+      required:
+        - name
+        - email
+        - password

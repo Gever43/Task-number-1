@@ -3,9 +3,9 @@ info:
   title: API
   version: 1.0.0
 paths:
-  /messages: //пути
-    get: //поддерживаемый метод
-      summary: Get all messages (описание операции)
+  /messages:
+    get:
+      summary: Get all messages
       tags:
         - messages
       responses:
@@ -16,8 +16,8 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Message" # Исправлено
-    post: //поддерживаемый метод
+                  $ref: "#/components/schemas/Message"
+    post:
       summary: Create a new message
       tags:
         - messages
@@ -27,14 +27,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Message" # Исправлено
+              $ref: "#/components/schemas/Message"
       responses:
         "201":
           description: The created message
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Message" # Исправлено
+                $ref: "#/components/schemas/Message"
     patch:
       summary: Update an existing message
       tags:
@@ -45,14 +45,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Message" # Исправлено
+              $ref: "#/components/schemas/Message"
       responses:
         "200":
           description: The updated message
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Message" # Исправлено
+                $ref: "#/components/schemas/Message"
     delete:
       summary: Delete a message
       tags:
@@ -74,6 +74,6 @@ components:
       properties:
         id:
           type: integer
-          format: uint # так как в БД айди это только положительные числа.
+          format: uint
         message:
           type: string
